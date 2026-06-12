@@ -26,4 +26,10 @@ ipconfig /flushdns
 ```bash
 net user test 123456 /add
 net localgroup administrators test /add
+
+
 ```
+net stop w32time
+w32tm /config /manualpeerlist:"time.windows.com,0x8" /syncfromflags:manual /update
+net start w32time
+w32tm /resync /force
