@@ -1,0 +1,29 @@
+### **查詢微軟作業系統授權序號**
+
+(Get-CimInstance SoftwareLicensingService).OA3xOriginalProductKey
+
+### MAS_MIO
+
+irm https://get.activated.win | iex
+
+### 系統修復
+
+```bash
+sfc /scannow
+DISM /Online /Cleanup-Image /RestoreHealth
+```
+
+### 網路重設
+
+```bash
+netsh winsock reset
+netsh int ip reset
+ipconfig /flushdns
+```
+
+### 帳號管理
+
+```bash
+net user test 123456 /add
+net localgroup administrators test /add
+```
