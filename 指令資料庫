@@ -33,3 +33,9 @@ net stop w32time
 w32tm /config /manualpeerlist:"time.windows.com,0x8" /syncfromflags:manual /update
 net start w32time
 w32tm /resync /force
+```
+
+### 驅動匯出
+
+```bash
+dism /online /export-driver /destination:"存放路徑"
