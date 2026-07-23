@@ -39,3 +39,12 @@ w32tm /resync /force
 
 ```bash
 dism /online /export-driver /destination:"存放路徑"
+```
+
+### 本機使用者密碼無期限
+
+```PowerShell
+Set-LocalUser -Name "user" -PasswordNeverExpires $true
+```
+
+
