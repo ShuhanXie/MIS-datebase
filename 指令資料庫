@@ -47,4 +47,9 @@ dism /online /export-driver /destination:"存放路徑"
 Set-LocalUser -Name "user" -PasswordNeverExpires $true
 ```
 
+### 測試PORT是否有通
+
+```PowerShell
+Test-NetConnection IP -Port PROT_NUM
+```
 
