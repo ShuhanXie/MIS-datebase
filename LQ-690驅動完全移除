@@ -1,0 +1,374 @@
+# 完整移除 EPSON LQ-690 系列驅動
+
+以下流程適用於想把電腦內的：
+
+```text
+EPSON LQ-690
+EPSON LQ-690C
+EPSON LQ-690CII
+```
+
+相關印表機物件、驅動、Monitor 與 Driver Store 殘留盡量清除乾淨的情況。
+
+---
+
+## 1. 備份目前 Print 登錄設定
+
+先用系統管理員 CMD：
+
+```cmd
+reg export "HKLM\SYSTEM\CurrentControlSet\Control\Print" C:\Print_Backup.reg /y
+```
+
+---
+
+## 2. 查詢並刪除 LQ-690 系列印表機物件
+
+新版 Windows 已經沒有 `wmic`，所以改用 PowerShell。
+
+查詢所有名稱含 `690` 的印表機：
+
+```powershell
+Get-Printer | Where-Object {$_.Name -match "690"}
+```
+
+確認後刪除：
+
+```powershell
+Get-Printer | Where-Object {$_.Name -match "690"} | Remove-Printer
+```
+
+---
+
+## 3. 查詢 LQ-690 系列驅動
+
+PowerShell：
+
+```powershell
+Get-PrinterDriver | Where-Object {$_.Name -match "690"}
+```
+
+如果看到例如：
+
+```text
+EPSON LQ-690C ESC/P2
+EPSON LQ-690CII ESC/P2
+```
+
+可以嘗試移除：
+
+```powershell
+Remove-PrinterDriver -Name "EPSON LQ-690C ESC/P2"
+```
+
+```powershell
+Remove-PrinterDriver -Name "EPSON LQ-690CII ESC/P2"
+```
+
+---
+
+## 4. 停止 Print Spooler
+
+```cmd
+net stop spooler
+```
+
+並清空列印工作：
+
+```cmd
+del /f /q C:\Windows\System32\spool\PRINTERS\*.*
+```
+
+---
+
+## 5. 檢查 Version-3 Driver 登錄資料
+
+查詢：
+
+```cmd
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows x64\Drivers\Version-3"
+```
+
+確認有沒有：
+
+```text
+EPSON LQ-690
+EPSON LQ-690C
+EPSON LQ-690CII
+```
+
+如果還有，依實際名稱刪除。
+
+例如：
+
+```cmd
+reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows x64\Drivers\Version-3\EPSON LQ-690C ESC/P2" /f
+```
+
+```cmd
+reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows x64\Drivers\Version-3\EPSON LQ-690CII ESC/P2" /f
+```
+
+---
+
+## 6. 檢查 EPSON SIDM Print Monitor
+
+查詢：
+
+```cmd
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\Print\Monitors\EPSON SIDM 64Monitor" /s
+```
+
+如果目前沒有其他 Epson 點矩陣印表機需要使用 SIDM Monitor，可以先備份：
+
+```cmd
+reg export "HKLM\SYSTEM\CurrentControlSet\Control\Print\Monitors\EPSON SIDM 64Monitor" C:\EPSON_SIDM.reg /y
+```
+
+再移除：
+
+```cmd
+reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Print\Monitors\EPSON SIDM 64Monitor" /f
+```
+
+如果電腦還有其他 Epson 點矩陣印表機，例如 LQ 系列，則不要直接刪除此 Monitor。
+
+---
+
+## 7. 檢查 Driver Store
+
+查詢 Printer 類別驅動：
+
+```cmd
+pnputil /enum-drivers /class Printer
+```
+
+也可以輸出成文字檔：
+
+```cmd
+pnputil /enum-drivers /class Printer > C:\PrinterDrivers.txt
+notepad C:\PrinterDrivers.txt
+```
+
+搜尋：
+
+```text
+EPSON
+```
+
+目前曾查到的 EPSON Driver Store 項目包含：
+
+```text
+oem172.inf
+原始名稱：ebsd179b.inf
+類別：印表機
+
+oem151.inf
+原始名稱：e_wf1yxe.inf
+類別：印表機
+
+oem174.inf
+原始名稱：e_wf1yxe.inf
+類別：印表機
+```
+
+另有：
+
+```text
+oem173.inf
+原始名稱：ebsgep0b.inf
+類別：USB 控制器
+```
+
+`oem173.inf` 並不是印表機 Driver，不要因為提供者是 EPSON 就直接刪除。
+
+---
+
+## 8. 確認 INF 是否包含 LQ-690
+
+可先匯出 Driver。
+
+建立資料夾：
+
+```cmd
+mkdir C:\EPSON151
+mkdir C:\EPSON174
+mkdir C:\EPSON172
+```
+
+匯出：
+
+```cmd
+pnputil /export-driver oem151.inf C:\EPSON151
+pnputil /export-driver oem174.inf C:\EPSON174
+pnputil /export-driver oem172.inf C:\EPSON172
+```
+
+搜尋 INF：
+
+```cmd
+findstr /s /i "690 690C 690CII" C:\EPSON151\*.inf
+findstr /s /i "690 690C 690CII" C:\EPSON174\*.inf
+findstr /s /i "690 690C 690CII" C:\EPSON172\*.inf
+```
+
+也可以直接搜尋：
+
+```cmd
+findstr /s /i "LQ-690 690C 690CII" C:\Windows\INF\oem*.inf
+```
+
+如果沒有任何結果，代表這些 INF 內沒有直接出現 `LQ-690` 型號名稱。
+
+因此不要只因為它是 EPSON Driver 就直接刪除。
+
+---
+
+## 9. 如果確認某個 OEM INF 就是 LQ-690 驅動
+
+才使用：
+
+```cmd
+pnputil /delete-driver oemXX.inf /uninstall /force
+```
+
+例如：
+
+```cmd
+pnputil /delete-driver oem151.inf /uninstall /force
+```
+
+前提一定是已確認該 INF 屬於要移除的 LQ-690 系列。
+
+---
+
+## 10. 不要直接刪 spool\drivers 裡的 DLL
+
+不要直接進：
+
+```text
+C:\Windows\System32\spool\drivers\x64\3
+```
+
+使用 `Shift + Delete` 刪除 Epson DLL。
+
+因為 Epson 不同型號可能共用 DLL，直接刪除可能造成其他 Epson 印表機一起故障。
+
+如果要處理 DLL，應先從 Driver 登錄資料確認：
+
+```cmd
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows x64\Drivers\Version-3\EPSON LQ-690C ESC/P2" /s
+```
+
+或：
+
+```cmd
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows x64\Drivers\Version-3\EPSON LQ-690CII ESC/P2" /s
+```
+
+記錄：
+
+```text
+Driver
+ConfigFile
+DataFile
+Dependent Files
+Monitor
+Print Processor
+```
+
+之後才能確認哪些 DLL 真的是 LQ-690 系列使用。
+
+---
+
+## 11. 重新開機
+
+清除完成後：
+
+```cmd
+shutdown /r /t 0
+```
+
+---
+
+## 12. 開機後確認是否清除完成
+
+確認 Print Spooler：
+
+```cmd
+sc query spooler
+```
+
+正常應顯示：
+
+```text
+STATE : 4 RUNNING
+```
+
+再開：
+
+```cmd
+printui /s /t2
+```
+
+確認「驅動程式」頁籤沒有：
+
+```text
+EPSON LQ-690
+EPSON LQ-690C
+EPSON LQ-690CII
+```
+
+再查：
+
+```cmd
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\Print\Environments\Windows x64\Drivers\Version-3" | findstr /i "690"
+```
+
+如果沒有輸出，代表 Version-3 Driver 登錄資料內已沒有 LQ-690 系列。
+
+如果有移除 SIDM Monitor，再確認：
+
+```cmd
+reg query "HKLM\SYSTEM\CurrentControlSet\Control\Print\Monitors" | findstr /i "EPSON"
+```
+
+---
+
+## 13. 清除完成後再測 PS531
+
+先不要急著安裝 LQ-690CII。
+
+先確認 Print Spooler 持續正常：
+
+```cmd
+sc query spooler
+```
+
+等待約 1～2 分鐘後再查一次。
+
+確認都維持：
+
+```text
+RUNNING
+```
+
+再透過 PS531 安裝 LQ-690CII。
+
+如果：
+
+```text
+清除前 → Spooler 正常
+PS531 安裝 LQ-690CII
+→ EPSON SIDM / LQ-690CII 元件重新建立
+→ spoolsv.exe 再次崩潰
+```
+
+則問題就不再只是「舊 LQ-690 驅動殘留」，而很可能是：
+
+```text
+PS531 安裝 LQ-690CII 時載入的 Epson SIDM / Driver DLL
+與這台 Windows 的列印環境發生衝突
+```
+
+此時應拿一台「同樣使用 PS531 安裝 LQ-690CII 但正常」的電腦，跟問題電腦比較 EPSON SIDM Monitor、LQ-690CII Driver 與相關 DLL 版本。
