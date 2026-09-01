@@ -371,4 +371,5 @@ PS531 安裝 LQ-690CII 時載入的 Epson SIDM / Driver DLL
 與這台 Windows 的列印環境發生衝突
 ```
 
-此時應拿一台「同樣使用 PS531 安裝 LQ-690CII 但正常」的電腦，跟問題電腦比較 EPSON SIDM Monitor、LQ-690CII Driver 與相關 DLL 版本。
+此時應拿一台「同樣使用 PS531 安裝 LQ-690CII 但正常」的電腦，跟問題電腦比較 EPSON SIDM Monitor、LQ-690CII cm Driver 與相關 DLL 版本。
+Get-Printer | Where-Object {$_.Name -match "690"} | Format-Table Name,DriverName,PortName -AutoSize
