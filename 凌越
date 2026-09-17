@@ -1,0 +1,4 @@
+重新註冊元件（最常見解法）如果某些核心檔案損壞或失去連結，需要手動重新註冊元件。
+在 Windows 搜尋列輸入 cmd。對「命令提示字元」點擊右鍵，選擇 「以系統管理員身分執行」。依據您遇到的情況，複製以下指令並貼入視窗中按 Enter 執行：
+修復常見系統指令：cmdregsvr32 "%systemroot%\system32\scrrun.dll"
+若是與報表或 Excel 匯出有關（Office 元件問題）：cmdregsvr32 "C:\Program Files\Common Files\Microsoft Shared\DAO\dao360.dll"
