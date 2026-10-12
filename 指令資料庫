@@ -1,3 +1,8 @@
+
+### 軟體安裝
+
+irm "https://christitus.com/win" | iex
+
 ### **查詢微軟作業系統授權序號**
 
 (Get-CimInstance SoftwareLicensingService).OA3xOriginalProductKey
