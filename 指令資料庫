@@ -58,3 +58,30 @@ Set-LocalUser -Name "user" -PasswordNeverExpires $true
 Test-NetConnection IP -Port PROT_NUM
 ```
 
+
+$folder = "D:\Outlook"
+
+$outlook = New-Object -ComObject Outlook.Application
+$namespace = $outlook.GetNamespace("MAPI")
+
+$existing = @($namespace.Stores | ForEach-Object {
+    $_.FilePath
+})
+
+Get-ChildItem -LiteralPath $folder -Filter *.pst -File |
+ForEach-Object {
+    if ($existing -contains $_.FullName) {
+        Write-Host "已存在：$($_.Name)"
+    }
+    else {
+        try {
+            $namespace.AddStore($_.FullName)
+            Write-Host "加入成功：$($_.Name)"
+        }
+        catch {
+            Write-Host "加入失敗：$($_.Name)"
+        }
+    }
+}
+
+
